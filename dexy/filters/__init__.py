@@ -8,6 +8,7 @@ import dexy.filters.deprecated
 import dexy.filters.easy
 import dexy.filters.example
 import dexy.filters.fluid_html
+import dexy.filters.genipynb
 import dexy.filters.git
 import dexy.filters.id
 import dexy.filters.ipynb
@@ -21,6 +22,7 @@ import dexy.filters.pexp
 import dexy.filters.phantomjs
 import dexy.filters.pydoc
 import dexy.filters.pytest
+import dexy.filters.pyparse
 import dexy.filters.pyg
 import dexy.filters.pyn
 import dexy.filters.rst
