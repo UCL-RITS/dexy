@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import time
 import yaml
+import contextlib
 
 is_windows = platform.system() in ('Windows',)
 
@@ -327,6 +328,15 @@ def levenshtein(s1, s2):
         else:
           matrix[zz+1][sz+1] = min(matrix[zz+1][sz] + 1, matrix[zz][sz+1] + 1, matrix[zz][sz] + 1)
     return matrix[l2][l1]
+
+@contextlib.contextmanager
+def safe_cwd(path):
+    cwd=os.getcwd()
+    try:
+       os.chdir(path)
+       yield
+    finally:
+        os.chdir(cwd)
 
 def indent(s, spaces=4):
     return "\n".join("%s%s" % (' ' * spaces, line)
