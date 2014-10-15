@@ -27,7 +27,7 @@ class SupplementaryReporter(Website):
         return env
 
     def add_indigo_nodes(self):
-        # Create a new wrapper object which dexifies the indigo project folder
+        # Create a new wrapper object which dexifies the supplementary project folder
         # with cache objects etc being generated into the current cache, not a new one
         current_artifacts =  os.path.realpath(self.wrapper.artifacts_dir)
         with safe_cwd(self.setting('supplementary-location')):
