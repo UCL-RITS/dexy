@@ -224,6 +224,7 @@ class Website(Output):
             }))
 
         env_data = dict((k, v[1]) for k, v in raw_env_data.iteritems())
+        env_data["reporter_settings"]=self.settings_and_attributes()
 
         if doc.safe_setting('apply-ws-to-content'):
             env_data['content'] = self.apply_jinja_to_page_content(doc, env_data)
