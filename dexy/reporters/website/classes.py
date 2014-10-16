@@ -64,7 +64,7 @@ class Website(Output):
     _settings = {
         "dir" : "output-site",
         "default-template" : ("Path to the default template to apply.", "_template.html"),
-        "root" : ("Path to which the webserver will be deployed. Dexy doesn't do anything with this, but it is available to your templates", '/'),
+        "root" : ("Path to which the webserver will be deployed. Dexy doesn't do anything with this, but it is available to your templates", ''),
         "default" : False
     }
 
