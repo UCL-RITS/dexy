@@ -64,6 +64,7 @@ class Website(Output):
     _settings = {
         "dir" : "output-site",
         "default-template" : ("Path to the default template to apply.", "_template.html"),
+        "root" : ("Path to which the webserver will be deployed. Dexy doesn't do anything with this, but it is available to your templates", '/'),
         "default" : False
     }
 
@@ -225,6 +226,7 @@ class Website(Output):
 
         env_data = dict((k, v[1]) for k, v in raw_env_data.iteritems())
         env_data["reporter_settings"]=self.settings_and_attributes()
+        env_data["root"]=self.setting('root')
 
         if doc.safe_setting('apply-ws-to-content'):
             env_data['content'] = self.apply_jinja_to_page_content(doc, env_data)
