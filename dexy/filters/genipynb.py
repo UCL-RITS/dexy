@@ -42,22 +42,17 @@ class MarkdownSections(DexyFilter):
                 }
 
     def process_sections(self, input_text):
-        blocks = []
+        self.blocks = []
 
-        proseblock = []
-        codeblock = None
+        self.proseblock = []
+        self.codeblock = None
 
         language = None
         state = "md"
 
         for line in input_text.splitlines():
             if state == "md" and line.lstrip().startswith("```"):
-                # save exististing prose block, if any
-                if proseblock:
-                    block = self.process_prose(proseblock)
-                    blocks.append(block)
-                    proseblock = []
-
+                self.finish_prose_block()
                 # start new code block, skipping current line
                 state = "code"
 
@@ -68,30 +63,34 @@ class MarkdownSections(DexyFilter):
                 else:
                     language = self.setting('language')
 
-                codeblock = []
+                self.codeblock = []
             elif state == "code" and line.lstrip().startswith("```"):
-                block = self.process_code(codeblock, language)
-                blocks.append(block)
+                block = self.process_code(self.codeblock, language)
+                self.blocks.append(block)
 
                 state = "md"
             elif state == "code":
-                codeblock.append(line)
+                self.codeblock.append(line)
             elif state == "md":
                 m = re.match("^(#+)(\s*)(.*)$", line)
                 if m:
-                    if proseblock:
-                        block = self.process_prose(proseblock)
-                        blocks.append(block)
-                        proseblock = []
-
+                    self.finish_prose_block()
                     level = len(m.groups()[0])
                     block = self.process_heading(level, m.groups()[2])
-                    blocks.append(block)
+                    self.blocks.append(block)
                 else:
-                    proseblock.append(line)
+                    self.proseblock.append(line)
 
-        return blocks
-        
+        self.finish_prose_block()
+        return self.blocks
+
+    def finish_prose_block(self):
+        # save exististing prose block, if any
+        if self.proseblock:
+            block = self.process_prose(self.proseblock)
+            self.blocks.append(block)
+            self.proseblock = []
+
     def process_text(self, input_text):
         blocks = self.process_sections(input_text)
 
