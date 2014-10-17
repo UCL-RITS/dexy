@@ -112,11 +112,16 @@ class MarkdownJupyter(MarkdownSections):
             "nbformat_minor" : ("Setting to use for IPython nbformat_minor setting.", 0),
             "name" : ("Name of notebook.", None),
             "collapsed" : ("Whether to collapse code blocks by default.", False),
+            "python-only" : ("Whether to render only Python code blocks as code cells", False)
             }
-    
+
     def process_code(self, source, language, metadata=None):
+        if self.setting('python-only') and language != "python":
+            return self.process_raw(source)
+
         if language is None:
             raise Exception("no language specified")
+
         return {
                 "cell_type" : "code",
                 "collapsed" : self.setting('collapsed'),
@@ -125,6 +130,15 @@ class MarkdownJupyter(MarkdownSections):
                 "input" : source,
                 "outputs" : [],
                 "prompt_number" : None
+                }
+
+    def process_raw(self, source):
+        return {
+                "cell_type" : "raw",
+                "metadata" : {},
+                "source" : [
+                    "\n".join(source)
+                    ]
                 }
 
     def process_heading(self, level, text, metadata = None):
