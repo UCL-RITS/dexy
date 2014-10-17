@@ -62,7 +62,7 @@ class MarkdownSections(DexyFilter):
                 state = "code"
 
                 # Detect lexer, if specified
-                match_lexer = re.match("```([A-Za-z-]+)", line)
+                match_lexer = re.match("``` *([A-Za-z-]+)", line)
                 if match_lexer:
                     language = match_lexer.groups()[0]
                 else:
