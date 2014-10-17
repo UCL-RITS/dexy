@@ -47,47 +47,55 @@ class MarkdownSections(DexyFilter):
         self.proseblock = []
         self.codeblock = None
 
-        language = None
-        state = "md"
+        self.language = None
+        self.state = "md"
 
         for line in input_text.splitlines():
-            if state == "md":
-                if line.lstrip().startswith("```"):
-                    self.finish_prose_block()
-                    # start new code block, skipping current line
-                    state = "code"
-                    self.codeblock = []
+             self.dispatch_line(line)
 
-                    # Detect lexer, if specified
-                    match_lexer = re.match("``` *([A-Za-z-]+)", line)
-                    if match_lexer:
-                        language = match_lexer.groups()[0]
-                    else:
-                        language = self.setting('language')
-                    continue
-
-                m = re.match("^(#+)(\s*)(.*)$", line)
-                if m:
-                    # Header line
-                    self.finish_prose_block()
-                    level = len(m.groups()[0])
-                    block = self.process_heading(level, m.groups()[2])
-                    self.blocks.append(block)
-                else:
-                    self.proseblock.append(line)
-
-            elif state == "code":
-                if line.lstrip().startswith("```"):
-                    # Finish code block
-                    block = self.process_code(self.codeblock, language)
-                    self.blocks.append(block)
-                    state = "md"
-                else:
-                    self.codeblock.append(line)
-        
         # Finish trailing proseblock
         self.finish_prose_block()
         return self.blocks
+
+    def dispatch_line(self, line):
+        if self.state == "md":
+            if line.lstrip().startswith("```"):
+                self.finish_prose_block()
+                self.new_code_block(line)
+            else:
+                m = re.match("^(#+)(\s*)(.*)$", line)
+                if m:
+                    self.finish_prose_block()
+                    self.header_block(m)
+                else:
+                    self.proseblock.append(line)
+        elif self.state == "code":
+            if line.lstrip().startswith("```"):
+                self.finish_code_block()
+            else:
+                self.codeblock.append(line)
+
+    def finish_code_block(self):
+         block = self.process_code(self.codeblock, self.language)
+         self.blocks.append(block)
+         self.state = "md"
+
+    def header_block(self, match):
+         self.finish_prose_block()
+         level = len(match.groups()[0])
+         block = self.process_heading(level, match.groups()[2])
+         self.blocks.append(block)
+
+    def new_code_block(self, line):
+        self.state = "code"
+        self.codeblock = []
+
+        # Detect lexer, if specified
+        match_lexer = re.match("``` *([A-Za-z-]+)", line)
+        if match_lexer:
+            self.language = match_lexer.groups()[0]
+        else:
+            self.language = self.setting('language')
 
     def finish_prose_block(self):
         # save exististing prose block, if any
