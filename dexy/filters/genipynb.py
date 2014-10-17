@@ -51,29 +51,24 @@ class MarkdownSections(DexyFilter):
         state = "md"
 
         for line in input_text.splitlines():
-            if state == "md" and line.lstrip().startswith("```"):
-                self.finish_prose_block()
-                # start new code block, skipping current line
-                state = "code"
+            if state == "md":
+                if line.lstrip().startswith("```"):
+                    self.finish_prose_block()
+                    # start new code block, skipping current line
+                    state = "code"
+                    self.codeblock = []
 
-                # Detect lexer, if specified
-                match_lexer = re.match("``` *([A-Za-z-]+)", line)
-                if match_lexer:
-                    language = match_lexer.groups()[0]
-                else:
-                    language = self.setting('language')
+                    # Detect lexer, if specified
+                    match_lexer = re.match("``` *([A-Za-z-]+)", line)
+                    if match_lexer:
+                        language = match_lexer.groups()[0]
+                    else:
+                        language = self.setting('language')
+                    continue
 
-                self.codeblock = []
-            elif state == "code" and line.lstrip().startswith("```"):
-                block = self.process_code(self.codeblock, language)
-                self.blocks.append(block)
-
-                state = "md"
-            elif state == "code":
-                self.codeblock.append(line)
-            elif state == "md":
                 m = re.match("^(#+)(\s*)(.*)$", line)
                 if m:
+                    # Header line
                     self.finish_prose_block()
                     level = len(m.groups()[0])
                     block = self.process_heading(level, m.groups()[2])
@@ -81,6 +76,16 @@ class MarkdownSections(DexyFilter):
                 else:
                     self.proseblock.append(line)
 
+            elif state == "code":
+                if line.lstrip().startswith("```"):
+                    # Finish code block
+                    block = self.process_code(self.codeblock, language)
+                    self.blocks.append(block)
+                    state = "md"
+                else:
+                    self.codeblock.append(line)
+        
+        # Finish trailing proseblock
         self.finish_prose_block()
         return self.blocks
 
