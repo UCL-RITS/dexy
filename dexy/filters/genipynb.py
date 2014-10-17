@@ -42,56 +42,68 @@ class MarkdownSections(DexyFilter):
                 }
 
     def process_sections(self, input_text):
-        blocks = []
+        self.blocks = []
 
-        proseblock = []
-        codeblock = None
+        self.proseblock = []
+        self.codeblock = None
 
-        language = None
-        state = "md"
+        self.language = None
+        self.state = "md"
 
         for line in input_text.splitlines():
-            if state == "md" and line.lstrip().startswith("```"):
-                # save exististing prose block, if any
-                if proseblock:
-                    block = self.process_prose(proseblock)
-                    blocks.append(block)
-                    proseblock = []
+             self.dispatch_line(line)
 
-                # start new code block, skipping current line
-                state = "code"
+        # Finish trailing proseblock
+        self.finish_prose_block()
+        return self.blocks
 
-                # Detect lexer, if specified
-                match_lexer = re.match("```([A-Za-z-]+)", line)
-                if match_lexer:
-                    language = match_lexer.groups()[0]
-                else:
-                    language = self.setting('language')
-
-                codeblock = []
-            elif state == "code" and line.lstrip().startswith("```"):
-                block = self.process_code(codeblock, language)
-                blocks.append(block)
-
-                state = "md"
-            elif state == "code":
-                codeblock.append(line)
-            elif state == "md":
+    def dispatch_line(self, line):
+        if self.state == "md":
+            if line.lstrip().startswith("```"):
+                self.finish_prose_block()
+                self.new_code_block(line)
+            else:
                 m = re.match("^(#+)(\s*)(.*)$", line)
                 if m:
-                    if proseblock:
-                        block = self.process_prose(proseblock)
-                        blocks.append(block)
-                        proseblock = []
-
-                    level = len(m.groups()[0])
-                    block = self.process_heading(level, m.groups()[2])
-                    blocks.append(block)
+                    self.finish_prose_block()
+                    self.header_block(m)
                 else:
-                    proseblock.append(line)
+                    self.proseblock.append(line)
+        elif self.state == "code":
+            if line.lstrip().startswith("```"):
+                self.finish_code_block()
+            else:
+                self.codeblock.append(line)
 
-        return blocks
-        
+    def finish_code_block(self):
+         block = self.process_code(self.codeblock, self.language)
+         self.blocks.append(block)
+         self.state = "md"
+
+    def header_block(self, match):
+         self.finish_prose_block()
+         level = len(match.groups()[0])
+         block = self.process_heading(level, match.groups()[2])
+         self.blocks.append(block)
+
+    def new_code_block(self, line):
+        self.state = "code"
+        self.codeblock = []
+
+        # Detect lexer, if specified
+        match_lexer = re.match("``` *([A-Za-z-]+)", line)
+        if match_lexer:
+            self.language = match_lexer.groups()[0]
+        else:
+            self.language = self.setting('language')
+
+    def finish_prose_block(self):
+        # save exististing prose block, if any
+        if self.proseblock:
+            block = self.process_prose(self.proseblock)
+            self.blocks.append(block)
+            self.proseblock = []
+
     def process_text(self, input_text):
         blocks = self.process_sections(input_text)
 
@@ -112,11 +124,16 @@ class MarkdownJupyter(MarkdownSections):
             "nbformat_minor" : ("Setting to use for IPython nbformat_minor setting.", 0),
             "name" : ("Name of notebook.", None),
             "collapsed" : ("Whether to collapse code blocks by default.", False),
+            "python-only" : ("Whether to render only Python code blocks as code cells", False)
             }
-    
+
     def process_code(self, source, language, metadata=None):
+        if self.setting('python-only') and language != "python":
+            return self.process_raw(source)
+
         if language is None:
             raise Exception("no language specified")
+
         return {
                 "cell_type" : "code",
                 "collapsed" : self.setting('collapsed'),
@@ -125,6 +142,15 @@ class MarkdownJupyter(MarkdownSections):
                 "input" : source,
                 "outputs" : [],
                 "prompt_number" : None
+                }
+
+    def process_raw(self, source):
+        return {
+                "cell_type" : "raw",
+                "metadata" : {},
+                "source" : [
+                    "\n".join(source)
+                    ]
                 }
 
     def process_heading(self, level, text, metadata = None):
